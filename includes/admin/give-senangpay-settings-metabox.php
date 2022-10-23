@@ -124,7 +124,7 @@ class Give_Senangpay_Settings_Metabox
     public function enqueue_js($hook)
     {
         if ('post.php' === $hook || $hook === 'post-new.php') {
-            wp_enqueue_script('give_senangpay_each_form', GIVE_SENANGPAY_PLUGIN_URL . '/includes/js/meta-box.js');
+            wp_enqueue_script('give_senangpay_each_form', GIVE_MPAY_PLUGIN_URL . '/includes/js/meta-box.js');
         }
     }
 
