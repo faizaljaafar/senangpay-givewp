@@ -1,6 +1,6 @@
-# SenangPay for GiveWP
+# Billplz for GiveWP
 
-Accept payment using SenangPay by using this plugin.
+Accept payment using Billplz by using this plugin.
 
 ## Requirements
 
@@ -9,7 +9,7 @@ Accept payment using SenangPay by using this plugin.
 
 ## Installation
 
-* Download here: [**Plugin Files**](https://github.com/raheemmiyasin/SenangPay-for-GiveWP/archive/master.zip)
+* Download here: [**Plugin Files**](https://codeload.github.com/Billplz/Billplz-for-GiveWP/zip/master)
 * Login to **WordPress Dashboard**
 * Navigate to **Plugins >> Add New >> Upload**
 * Upload the files >> **Activate**
@@ -18,7 +18,14 @@ Accept payment using SenangPay by using this plugin.
 
 1. Login to **WordPress Dashboard**
 2. Navigate to **Donations >> Settings >> Payment Gateways**
-3. Enable **Mpays**
-4. Navigate to **SenangPay Settings**
-5. Set **Merchant Id**
-6. Set **API Secret Key**
+3. Enable **Billplz - FPX**
+4. Navigate to **Billplz Settings**
+5. Set **API Secret Key** and **X Signature Key**
+
+## Troubleshooting
+
+* Please make sure you have enabled X Signature Key properly on your [Billplz Account Settings](https://www.billplz.com/enterprise/setting)
+
+## Other
+
+Facebook: [Billplz Dev Jam](https://www.facebook.com/groups/billplzdevjam/)
