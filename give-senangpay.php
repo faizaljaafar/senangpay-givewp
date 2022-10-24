@@ -1,12 +1,12 @@
 <?php
 /**
- * Plugin Name: Billplz for GiveWP
- * Plugin URI:  https://github.com/billplz/billplz-for-givewp
- * Description: Billplz. Fair payment platform.
- * Version:     3.4.0
- * Author:      Billplz Sdn Bhd
- * Author URI:  https://www.billplz.com
- * Text Domain: give-billplz
+ * Plugin Name: senangPay for GiveWP
+ * Plugin URI:  https://github.com/faizaljaafar/senangpay-givewp
+ * Description: senangPay, the easiest way to accept online payments.
+ * Version:     1.0.0
+ * Author:      Simplepay Gateway Sdn. Bhd.
+ * Author URI:  https://senangpay.my
+ * Text Domain: give-senangpay
  * Domain Path: /languages
  */
 // Exit if accessed directly.
@@ -19,34 +19,34 @@ if (!defined('ABSPATH')) {
  *
  * Required minimum versions, paths, urls, etc.
  */
-if (!defined('GIVE_BILLPLZ_MIN_GIVE_VER')) {
-  define('GIVE_BILLPLZ_MIN_GIVE_VER', '1.8.3');
+if (!defined('GIVE_SENANGPAY_MIN_GIVE_VER')) {
+  define('GIVE_SENANGPAY_MIN_GIVE_VER', '1.8.3');
 }
-if (!defined('GIVE_BILLPLZ_MIN_PHP_VER')) {
-  define('GIVE_BILLPLZ_MIN_PHP_VER', '5.6.0');
+if (!defined('GIVE_SENANGPAY_MIN_PHP_VER')) {
+  define('GIVE_SENANGPAY_MIN_PHP_VER', '5.6.0');
 }
-if (!defined('GIVE_BILLPLZ_PLUGIN_FILE')) {
-  define('GIVE_BILLPLZ_PLUGIN_FILE', __FILE__);
+if (!defined('GIVE_SENANGPAY_PLUGIN_FILE')) {
+  define('GIVE_SENANGPAY_PLUGIN_FILE', __FILE__);
 }
-if (!defined('GIVE_BILLPLZ_PLUGIN_DIR')) {
-  define('GIVE_BILLPLZ_PLUGIN_DIR', dirname(GIVE_BILLPLZ_PLUGIN_FILE));
+if (!defined('GIVE_SENANGPAY_PLUGIN_DIR')) {
+  define('GIVE_SENANGPAY_PLUGIN_DIR', dirname(GIVE_SENANGPAY_PLUGIN_FILE));
 }
-if (!defined('GIVE_BILLPLZ_PLUGIN_URL')) {
-  define('GIVE_BILLPLZ_PLUGIN_URL', plugin_dir_url(__FILE__));
+if (!defined('GIVE_SENANGPAY_PLUGIN_URL')) {
+  define('GIVE_SENANGPAY_PLUGIN_URL', plugin_dir_url(__FILE__));
 }
-if (!defined('GIVE_BILLPLZ_BASENAME')) {
-  define('GIVE_BILLPLZ_BASENAME', plugin_basename(__FILE__));
+if (!defined('GIVE_SENANGPAY_BASENAME')) {
+  define('GIVE_SENANGPAY_BASENAME', plugin_basename(__FILE__));
 }
 
-if (!class_exists('Give_Billplz')):
+if (!class_exists('Give_Senangpay')):
 
   /**
-   * Class Give_Billplz.
+   * Class Give_Senangpay.
    */
-  class Give_Billplz {
+  class Give_Senangpay {
 
     /**
-     * @var Give_Billplz The reference the *Singleton* instance of this class.
+     * @var Give_Senangpay The reference the *Singleton* instance of this class.
      */
     private static $instance;
 
@@ -56,7 +56,7 @@ if (!class_exists('Give_Billplz')):
     /**
      * Returns the *Singleton* instance of this class.
      *
-     * @return Give_Billplz The *Singleton* instance.
+     * @return Give_Senangpay The *Singleton* instance.
      */
     public static function get_instance() {
       if (null === self::$instance) {
@@ -77,7 +77,7 @@ if (!class_exists('Give_Billplz')):
     }
 
     /**
-     * Give_Billplz constructor.
+     * Give_Senangpay constructor.
      *
      * Protected constructor to prevent creating a new instance of the
      * *Singleton* via the `new` operator from outside of this class.
@@ -139,7 +139,7 @@ if (!class_exists('Give_Billplz')):
       // Check to see if Give is activated, if it isn't deactivate and show a banner.
       if (is_admin() && current_user_can('activate_plugins') && !$is_give_active) {
 
-        $this->add_admin_notice('prompt_give_activate', 'error', sprintf(__('<strong>Activation Error:</strong> You must have the <a href="%s" target="_blank">Give</a> plugin installed and activated for Billplz to activate.', 'give-billplz'), 'https://givewp.com'));
+        $this->add_admin_notice('prompt_give_activate', 'error', sprintf(__('<strong>Activation Error:</strong> You must have the <a href="%s" target="_blank">Give</a> plugin installed and activated for senangPay to activate.', 'give-senangpay'), 'https://givewp.com'));
 
         // Don't let this plugin activate
         deactivate_plugins(plugin_basename(__FILE__));
@@ -152,9 +152,9 @@ if (!class_exists('Give_Billplz')):
       }
 
       // Check min Give version.
-      if (defined('GIVE_BILLPLZ_MIN_GIVE_VER') && version_compare(GIVE_VERSION, GIVE_BILLPLZ_MIN_GIVE_VER, '<')) {
+      if (defined('GIVE_SENANGPAY_MIN_GIVE_VER') && version_compare(GIVE_VERSION, GIVE_SENANGPAY_MIN_GIVE_VER, '<')) {
 
-        $this->add_admin_notice('prompt_give_version_update', 'error', sprintf(__('<strong>Activation Error:</strong> You must have the <a href="%s" target="_blank">Give</a> core version %s+ for the Give Billplz add-on to activate.', 'give-billplz'), 'https://givewp.com', GIVE_BILLPLZ_MIN_GIVE_VER));
+        $this->add_admin_notice('prompt_give_version_update', 'error', sprintf(__('<strong>Activation Error:</strong> You must have the <a href="%s" target="_blank">Give</a> core version %s+ for the Give senangPay add-on to activate.', 'give-senangpay'), 'https://givewp.com', GIVE_SENANGPAY_MIN_GIVE_VER));
 
         // Don't let this plugin activate.
         deactivate_plugins(plugin_basename(__FILE__));
@@ -179,23 +179,23 @@ if (!class_exists('Give_Billplz')):
      */
     public static function get_environment_warning($during_activation = false) {
 
-      if (version_compare(phpversion(), GIVE_BILLPLZ_MIN_PHP_VER, '<')) {
+      if (version_compare(phpversion(), GIVE_SENANGPAY_MIN_PHP_VER, '<')) {
         if ($during_activation) {
-          $message = __('The plugin could not be activated. The minimum PHP version required for this plugin is %1$s. You are running %2$s. Please contact your web host to upgrade your server\'s PHP version.', 'give-billplz');
+          $message = __('The plugin could not be activated. The minimum PHP version required for this plugin is %1$s. You are running %2$s. Please contact your web host to upgrade your server\'s PHP version.', 'give-senangpay');
         } else {
-          $message = __('The plugin has been deactivated. The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'give-billplz');
+          $message = __('The plugin has been deactivated. The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'give-senangpay');
         }
 
-        return sprintf($message, GIVE_BILLPLZ_MIN_PHP_VER, phpversion());
+        return sprintf($message, GIVE_SENANGPAY_MIN_PHP_VER, phpversion());
       }
 
       if (!function_exists('curl_init')) {
 
         if ($during_activation) {
-          return __('The plugin could not be activated. cURL is not installed. Please contact your web host to install cURL.', 'give-billplz');
+          return __('The plugin could not be activated. cURL is not installed. Please contact your web host to install cURL.', 'give-senangpay');
         }
 
-        return __('The plugin has been deactivated. cURL is not installed. Please contact your web host to install cURL.', 'give-billplz');
+        return __('The plugin has been deactivated. cURL is not installed. Please contact your web host to install cURL.', 'give-senangpay');
       }
 
       return false;
@@ -236,7 +236,7 @@ if (!class_exists('Give_Billplz')):
     }
 
     /**
-     * Give Billplz Includes.
+     * Give Senangpay Includes.
      */
     private function includes() {
 
@@ -246,18 +246,18 @@ if (!class_exists('Give_Billplz')):
       }
 
       if (is_admin()) {
-        include GIVE_BILLPLZ_PLUGIN_DIR . '/includes/admin/give-billplz-activation.php';
-        include GIVE_BILLPLZ_PLUGIN_DIR . '/includes/admin/give-billplz-settings.php';
-        include GIVE_BILLPLZ_PLUGIN_DIR . '/includes/admin/give-billplz-settings-metabox.php';
+        include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/admin/give-senangpay-activation.php';
+        include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/admin/give-senangpay-settings.php';
+        include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/admin/give-senangpay-settings-metabox.php';
       }
 
-      include GIVE_BILLPLZ_PLUGIN_DIR . '/includes/Billplz_API.php';
-      include GIVE_BILLPLZ_PLUGIN_DIR . '/includes/Billplz_WPConnect.php';
-      include GIVE_BILLPLZ_PLUGIN_DIR . '/includes/give-billplz-gateway.php';
+      include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/Senangpay_API.php';
+      include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/Senangpay_WPConnect.php';
+      include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/give-senangpay-gateway.php';
     }
 
     /**
-     * Register the Billplz.
+     * Register the Senangpay.
      *
      * @access      public
      * @since       1.0
@@ -270,17 +270,17 @@ if (!class_exists('Give_Billplz')):
 
       // Format: ID => Name
       $label = array(
-        'admin_label'    => __('Billplz', 'give-billplz'),
-        'checkout_label' => __('Billplz', 'give-billplz'),
+        'admin_label'    => __('Senangpay', 'give-senangpay'),
+        'checkout_label' => __('Senangpay', 'give-senangpay'),
       );
 
-      $gateways['billplz'] = apply_filters('give_billplz_label', $label);
+      $gateways['senangpay'] = apply_filters('give_senangpay_label', $label);
 
       return $gateways;
     }
   }
 
-  $GLOBALS['give_billplz'] = Give_Billplz::get_instance();
-  register_activation_hook(__FILE__, array('Give_Billplz', 'activation_check'));
+  $GLOBALS['give_senangpay'] = Give_Senangpay::get_instance();
+  register_activation_hook(__FILE__, array('Give_Senangpay', 'activation_check'));
 
 endif; // End if class_exists check.

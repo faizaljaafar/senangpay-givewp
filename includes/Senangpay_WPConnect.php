@@ -1,6 +1,6 @@
 <?php
 
-class BillplzGiveWPConnect
+class SenangpayGiveWPConnect
 {
     private $api_key;
     private $x_signature_key;

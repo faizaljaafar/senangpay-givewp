@@ -1,30 +1,19 @@
 jQuery( function ( $ ) {
-  init_billplz_meta();
-  $(".billplz_customize_billplz_donations_field input:radio").on("change", function() {
-    init_billplz_meta();
+  init_senangpay_meta();
+  $(".senangpay_customize_senangpay_donations_field input:radio").on("change", function() {
+    init_senangpay_meta();
   });
 
-  function init_billplz_meta(){
-    if ("enabled" === $(".billplz_customize_billplz_donations_field input:radio:checked").val()){
-      $(".billplz_api_key_field").show();
-      $(".billplz_collection_id_field").show();
-      $(".billplz_x_signature_key_field").show();
-      $(".billplz_description_field").show();
-      $(".billplz_reference_1_label_field").show();
-      $(".billplz_reference_1_field").show();
-      $(".billplz_reference_2_label_field").show();
-      $(".billplz_reference_2_field").show();
-      $(".billplz_collect_billing_field").show();
+  function init_senangpay_meta(){
+    if ("enabled" === $(".senangpay_customize_senangpay_donations_field input:radio:checked").val()){
+      $(".senangpay_secret_key_field").show();
+      $(".senangpay_merchant_id").show();
+      $(".senangpay_description_field").show();
     } else {
-      $(".billplz_api_key_field").hide();
-      $(".billplz_collection_id_field").hide();
-      $(".billplz_x_signature_key_field").hide();
-      $(".billplz_description_field").hide();
-      $(".billplz_reference_1_label_field").hide();
-      $(".billplz_reference_1_field").hide();
-      $(".billplz_reference_2_label_field").hide();
-      $(".billplz_reference_2_field").hide();
-      $(".billplz_collect_billing_field").hide();
+      $(".senangpay_secret_key_field").hide();
+      $(".senangpay_collection_id_field").hide();
+      $(".senangpay_merchant_id").hide();
+      $(".senangpay_description_field").hide();
     }
   }
 });
