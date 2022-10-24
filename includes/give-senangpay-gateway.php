@@ -96,21 +96,6 @@ class Give_Senangpay_Gateway
         );
     }
 
-    public static function get_listener_url($payment_id)
-    {
-        $passphrase = get_option(self::LISTENER_PASSPHRASE, false);
-        if (!$passphrase) {
-            $passphrase = md5(site_url() . time());
-            update_option(self::LISTENER_PASSPHRASE, $passphrase);
-        }
-
-        $arg = array(
-            self::QUERY_VAR => $passphrase,
-            'payment_id' => $payment_id,
-        );
-        return add_query_arg($arg, site_url('/'));
-    }
-
     public function process_payment($purchase_data)
     {
         // Validate nonce.
@@ -132,7 +117,7 @@ class Give_Senangpay_Gateway
         $name = $purchase_data['user_info']['first_name'] . ' ' . $purchase_data['user_info']['last_name'];
 
         $parameter = array(
-            'order_id' => $payment_id['give_form_id'],
+            'order_id' => $payment_id,
             'email' => $purchase_data['user_email'],
             'name' => empty($name) ? 'Donor Name' : trim($name),
             'amount' => strval($purchase_data['price']),
@@ -151,7 +136,7 @@ class Give_Senangpay_Gateway
 
         $payment_url = $senangpay->getPaymentUrl();
 
-        give_update_meta($payment_id, 'senangpay_id', $payment_id['give_form_id']);
+        give_update_meta($payment_id, 'senangpay_id', $parameter['order_id']);
 
         wp_redirect($payment_url);
         exit;
@@ -184,26 +169,13 @@ class Give_Senangpay_Gateway
     {
         if ('publish' !== get_post_status($payment_id)) {
             give_update_payment_status($payment_id, 'publish');
-            if ($data['type'] === 'redirect') {
-                give_insert_payment_note($payment_id, "Payment ID: {$data['id']}.");
-            } else {
-                give_insert_payment_note($payment_id, "Payment ID: {$data['id']}. URL: {$data['url']}");
-            }
+            give_insert_payment_note($payment_id, "senangPay Transaction ID: {$data['transaction_id']}.");
         }
     }
 
     public function return_listener()
     {
         if (!isset($_GET[self::QUERY_VAR])) {
-            return;
-        }
-
-        $passphrase = get_option(self::LISTENER_PASSPHRASE, false);
-        if (!$passphrase) {
-            return;
-        }
-
-        if ($_GET[self::QUERY_VAR] != $passphrase) {
             return;
         }
 
@@ -240,7 +212,7 @@ class Give_Senangpay_Gateway
             $this->publish_payment($payment_id, $data);
         }
 
-        if ($data['type'] === 'redirect') {
+        if ($data['type'] === 'return') {
             if ($data['paid']) {
                 $return = add_query_arg(array(
                     'payment-confirmation' => 'senangpay',
