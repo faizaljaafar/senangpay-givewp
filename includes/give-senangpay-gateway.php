@@ -17,7 +17,7 @@ class Give_Senangpay_Gateway
         add_action('give_gateway_senangpay', array($this, 'process_payment'));
         add_action('give_senangpay_cc_form', array($this, 'give_senangpay_cc_form'));
         add_filter('give_enabled_payment_gateways', array($this, 'give_filter_senangpay_gateway'), 10, 2);
-        add_filter('give_payment_confirm_senangpay', array($this, 'give_billplz_success_page_content'));
+        add_filter('give_payment_confirm_senangpay', array($this, 'give_senangpay_success_page_content'));
     }
 
     public static function get_instance()
@@ -33,7 +33,7 @@ class Give_Senangpay_Gateway
     {
         if ((false === strpos($_SERVER['REQUEST_URI'], '/wp-admin/post-new.php?post_type=give_forms'))
             && $form_id
-            && !give_is_setting_enabled(give_get_meta($form_id, 'senangpay_customize_billplz_donations', true, 'global'), array('enabled', 'global'))
+            && !give_is_setting_enabled(give_get_meta($form_id, 'senangpay_customize_senangpay_donations', true, 'global'), array('enabled', 'global'))
         ) {
             unset($gateway_list['senangpay']);
         }
@@ -84,25 +84,15 @@ class Give_Senangpay_Gateway
 
         if ($status) {
             return array(
-                'api_key' => give_get_meta($form_id, 'senangpay_api_key', true),
-                'collection_id' => give_get_meta($form_id, 'senangpay_collection_id', true),
-                'x_signature' => give_get_meta($form_id, 'senangpay_x_signature_key', true),
+                'secret_key' => give_get_meta($form_id, 'senangpay_secret_key', true),
+                'merchant_id' => give_get_meta($form_id, 'senangpay_merchant_id', true),
                 'description' => give_get_meta($form_id, 'senangpay_description', true, true),
-                'reference_1_label' => give_get_meta($form_id, 'senangpay_reference_1_label', true),
-                'reference_1' => give_get_meta($form_id, 'senangpay_reference_1', true),
-                'reference_2_label' => give_get_meta($form_id, 'senangpay_reference_2_label', true),
-                'reference_2' => give_get_meta($form_id, 'senangpay_reference_2', true),
             );
         }
         return array(
-            'api_key' => give_get_option('senangpay_api_key'),
-            'collection_id' => give_get_option('senangpay_collection_id'),
-            'x_signature' => give_get_option('senangpay_x_signature_key'),
+            'secret_key' => give_get_option('senangpay_secret_key'),
+            'merchant_id' => give_get_option('senangpay_merchant_id'),
             'description' => give_get_option('senangpay_description', true),
-            'reference_1_label' => give_get_option('senangpay_reference_1_label'),
-            'reference_1' => give_get_option('senangpay_reference_1'),
-            'reference_2_label' => give_get_option('senangpay_reference_2_label'),
-            'reference_2' => give_get_option('senangpay_reference_2'),
         );
     }
 
@@ -142,56 +132,28 @@ class Give_Senangpay_Gateway
         $name = $purchase_data['user_info']['first_name'] . ' ' . $purchase_data['user_info']['last_name'];
 
         $parameter = array(
-            'collection_id' => trim($senangpay_key['collection_id']),
+            'order_id' => $payment_id['give_form_id'],
             'email' => $purchase_data['user_email'],
-            'name' => empty($name) ? $purchase_data['user_email'] : trim($name),
-            'amount' => strval($purchase_data['price'] * 100),
-            'callback_url' => self::get_listener_url($payment_id),
-            'description' => substr(trim($senangpay_key['description']), 0, 120),
+            'name' => empty($name) ? 'Donor Name' : trim($name),
+            'amount' => strval($purchase_data['price']),
+            'detail' => substr(trim($senangpay_key['description']), 0, 120),
         );
 
-        $optional = array(
-            'redirect_url' => $parameter['callback_url'],
-            'reference_1_label' => substr(trim($senangpay_key['reference_1_label']), 0, 20),
-            'reference_1' => substr(trim($senangpay_key['reference_1']), 0, 120),
-            'reference_2_label' => substr(trim($senangpay_key['reference_2_label']), 0, 20),
-            'reference_2' => substr(trim($senangpay_key['reference_2']), 0, 120),
+        $parameter = apply_filters('give_senangpay_mandatory_param', $parameter);
+
+        $is_staging = give_is_test_mode();
+        $senangpay = new SenangpayGiveAPI(
+            $senangpay_key['merchant_id'],
+            $senangpay_key['secret_key'],
+            $is_staging,
+            $parameter
         );
 
-        // PHP 5.6 return empty substr as false. Thus, we need to unset the key.
-        if ($optional['reference_1'] === false) {
-            unset($optional['reference_1']);
-        }
-        if ($optional['reference_2'] === false) {
-            unset($optional['reference_2']);
-        }
-        if ($optional['reference_1_label'] === false) {
-            unset($optional['reference_1_label']);
-        }
-        if ($optional['reference_2_label'] === false) {
-            unset($optional['reference_2_label']);
-        }
+        $payment_url = $senangpay->getPaymentUrl();
 
-        $parameter = apply_filters('give_senangpay_bill_mandatory_param', $parameter, $purchase_data['post_data']);
-        $optional = apply_filters('give_senangpay_bill_optional_param', $optional, $purchase_data['post_data']);
+        give_update_meta($payment_id, 'senangpay_id', $payment_id['give_form_id']);
 
-        $connect = new SenangpayGiveWPConnect($senangpay_key['api_key']);
-        $connect->setStaging(give_is_test_mode());
-        $senangpay = new SenangpayGiveAPI($connect);
-
-        list($rheader, $rbody) = $senangpay->toArray($senangpay->createBill($parameter, $optional));
-
-        if ($rheader !== 200) {
-            // Record the error.
-            give_record_gateway_error(__('Payment Error', 'give-senangpay'), sprintf( /* translators: %s: payment data */
-                __('Bill creation failed. Error message: %s', 'give-senangpay'), json_encode($rbody)), $payment_id);
-            // Problems? Send back.
-            give_send_back_to_checkout('?payment-mode=' . $purchase_data['post_data']['give-gateway']);
-        }
-
-        give_update_meta($payment_id, 'senangpay_id', $rbody['id']);
-
-        wp_redirect($rbody['url']);
+        wp_redirect($payment_url);
         exit;
     }
 
@@ -199,7 +161,7 @@ class Give_Senangpay_Gateway
     {
         // ob_start();
 
-        $post_senangpay_customize_option = give_get_meta($form_id, 'billplz_senangpay_billplz_donations', true, 'global');
+        $post_senangpay_customize_option = give_get_meta($form_id, 'senangpay_customize_senangpay_donations', true, 'global');
 
         // Enable Default fields (billing info)
         $post_senangpay_cc_fields = give_get_meta($form_id, 'senangpay_collect_billing', true);
@@ -223,9 +185,9 @@ class Give_Senangpay_Gateway
         if ('publish' !== get_post_status($payment_id)) {
             give_update_payment_status($payment_id, 'publish');
             if ($data['type'] === 'redirect') {
-                give_insert_payment_note($payment_id, "Bill ID: {$data['id']}.");
+                give_insert_payment_note($payment_id, "Payment ID: {$data['id']}.");
             } else {
-                give_insert_payment_note($payment_id, "Bill ID: {$data['id']}. URL: {$data['url']}");
+                give_insert_payment_note($payment_id, "Payment ID: {$data['id']}. URL: {$data['url']}");
             }
         }
     }
@@ -245,33 +207,33 @@ class Give_Senangpay_Gateway
             return;
         }
 
-        if (!isset($_GET['payment_id'])) {
+        if (!isset($_GET['order_id'])) {
             status_header(403);
             exit;
         }
 
-        $payment_id = preg_replace('/\D/', '', $_GET['payment_id']);
+        $payment_id = preg_replace('/\D/', '', $_GET['order_id']);
         $form_id = give_get_payment_form_id($payment_id);
 
         $custom_donation = give_get_meta($form_id, 'senangpay_customize_senangpay_donations', true, 'global');
         $status = give_is_setting_enabled($custom_donation, 'enabled');
 
         if ($status) {
-            $x_signature = trim(give_get_meta($form_id, 'senangpay_x_signature_key', true));
+            $secret_key = trim(give_get_meta($form_id, 'senangpay_secret_key', true));
         } else {
-            $x_signature = trim(give_get_option('senangpay_x_signature_key'));
+            $secret_key = trim(give_get_option('senangpay_secret_key'));
         }
 
         try {
-            $data = SenangpayGiveWPConnect::getXSignature($x_signature);
+            $data = SenangpayGiveAPI::getResponse($secret_key);
         } catch (Exception $e) {
             status_header(403);
-            exit('Failed X Signature Validation');
+            exit('Failed Hash Validation');
         }
 
-        if ($data['id'] !== give_get_meta($payment_id, 'senangpay_id', true)) {
+        if ($data['order_id'] !== give_get_meta($payment_id, 'senangpay_id', true)) {
             status_header(404);
-            exit('No senangPay ID found');
+            exit('No senangPay Payment ID found');
         }
 
         if ($data['paid'] && give_get_payment_status($payment_id)) {
@@ -289,6 +251,8 @@ class Give_Senangpay_Gateway
             }
 
             wp_redirect($return);
+        } else {
+            echo 'OK';
         }
         exit;
     }

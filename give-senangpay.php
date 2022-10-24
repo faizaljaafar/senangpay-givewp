@@ -1,286 +1,278 @@
 <?php
-/**
- * Plugin Name: senangPay for GiveWP
- * Plugin URI:  https://github.com/faizaljaafar/senangpay-givewp
- * Description: senangPay, the easiest way to accept online payments.
- * Version:     1.0.0
- * Author:      Simplepay Gateway Sdn. Bhd.
- * Author URI:  https://senangpay.my
- * Text Domain: give-senangpay
- * Domain Path: /languages
- */
-// Exit if accessed directly.
+
 if (!defined('ABSPATH')) {
-  exit;
+    exit;
 }
 
-/**
- * Define constants.
- *
- * Required minimum versions, paths, urls, etc.
- */
-if (!defined('GIVE_SENANGPAY_MIN_GIVE_VER')) {
-  define('GIVE_SENANGPAY_MIN_GIVE_VER', '1.8.3');
-}
-if (!defined('GIVE_SENANGPAY_MIN_PHP_VER')) {
-  define('GIVE_SENANGPAY_MIN_PHP_VER', '5.6.0');
-}
-if (!defined('GIVE_SENANGPAY_PLUGIN_FILE')) {
-  define('GIVE_SENANGPAY_PLUGIN_FILE', __FILE__);
-}
-if (!defined('GIVE_SENANGPAY_PLUGIN_DIR')) {
-  define('GIVE_SENANGPAY_PLUGIN_DIR', dirname(GIVE_SENANGPAY_PLUGIN_FILE));
-}
-if (!defined('GIVE_SENANGPAY_PLUGIN_URL')) {
-  define('GIVE_SENANGPAY_PLUGIN_URL', plugin_dir_url(__FILE__));
-}
-if (!defined('GIVE_SENANGPAY_BASENAME')) {
-  define('GIVE_SENANGPAY_BASENAME', plugin_basename(__FILE__));
-}
-
-if (!class_exists('Give_Senangpay')):
-
-  /**
-   * Class Give_Senangpay.
-   */
-  class Give_Senangpay {
-
-    /**
-     * @var Give_Senangpay The reference the *Singleton* instance of this class.
-     */
+class Give_Senangpay_Gateway
+{
     private static $instance;
 
-    public $notices = array();
+    const QUERY_VAR = 'senangpay_givewp_return';
+    const LISTENER_PASSPHRASE = 'senangpay_givewp_listener_passphrase';
 
-
-    /**
-     * Returns the *Singleton* instance of this class.
-     *
-     * @return Give_Senangpay The *Singleton* instance.
-     */
-    public static function get_instance() {
-      if (null === self::$instance) {
-        self::$instance = new self();
-      }
-
-      return self::$instance;
+    private function __construct()
+    {
+        add_action('init', array($this, 'return_listener'));
+        add_action('give_gateway_senangpay', array($this, 'process_payment'));
+        add_action('give_senangpay_cc_form', array($this, 'give_senangpay_cc_form'));
+        add_filter('give_enabled_payment_gateways', array($this, 'give_filter_senangpay_gateway'), 10, 2);
+        add_filter('give_payment_confirm_senangpay', array($this, 'give_senangpay_success_page_content'));
     }
 
-    /**
-     * Private clone method to prevent cloning of the instance of the
-     * *Singleton* instance.
-     *
-     * @return void
-     */
-    private function __clone() {
-
-    }
-
-    /**
-     * Give_Senangpay constructor.
-     *
-     * Protected constructor to prevent creating a new instance of the
-     * *Singleton* via the `new` operator from outside of this class.
-     */
-    protected function __construct() {
-      add_action('admin_init', array($this, 'check_environment'));
-      add_action('admin_notices', array($this, 'admin_notices'), 15);
-      add_action('plugins_loaded', array($this, 'init'));
-    }
-
-    /**
-     * Init the plugin after plugins_loaded so environment variables are set.
-     */
-    public function init() {
-
-      // Don't hook anything else in the plugin if we're in an incompatible environment.
-      if (self::get_environment_warning()) {
-        return;
-      }
-
-      add_filter('give_payment_gateways', array($this, 'register_gateway'));
-
-      $this->includes();
-    }
-
-    /**
-     * The primary sanity check, automatically disable the plugin on activation if it doesn't
-     * meet minimum requirements.
-     *
-     * Based on http://wptavern.com/how-to-prevent-wordpress-plugins-from-activating-on-sites-with-incompatible-hosting-environments
-     */
-    public static function activation_check() {
-      $environment_warning = self::get_environment_warning(true);
-      if ($environment_warning) {
-        deactivate_plugins(plugin_basename(__FILE__));
-        wp_die($environment_warning);
-      }
-    }
-
-    /**
-     * Check the server environment.
-     *
-     * The backup sanity check, in case the plugin is activated in a weird way,
-     * or the environment changes after activation.
-     */
-    public function check_environment() {
-
-      $environment_warning = self::get_environment_warning();
-      if ($environment_warning && is_plugin_active(plugin_basename(__FILE__))) {
-        deactivate_plugins(plugin_basename(__FILE__));
-        $this->add_admin_notice('bad_environment', 'error', $environment_warning);
-        if (isset($_GET['activate'])) {
-          unset($_GET['activate']);
+    public static function get_instance()
+    {
+        if (null === static::$instance) {
+            static::$instance = new static();
         }
-      }
 
-      // Check for if give plugin activate or not.
-      $is_give_active = defined('GIVE_PLUGIN_BASENAME') ? is_plugin_active(GIVE_PLUGIN_BASENAME) : false;
-      // Check to see if Give is activated, if it isn't deactivate and show a banner.
-      if (is_admin() && current_user_can('activate_plugins') && !$is_give_active) {
+        return static::$instance;
+    }
 
-        $this->add_admin_notice('prompt_give_activate', 'error', sprintf(__('<strong>Activation Error:</strong> You must have the <a href="%s" target="_blank">Give</a> plugin installed and activated for senangPay to activate.', 'give-senangpay'), 'https://givewp.com'));
+    public function give_filter_senangpay_gateway($gateway_list, $form_id)
+    {
+        if ((false === strpos($_SERVER['REQUEST_URI'], '/wp-admin/post-new.php?post_type=give_forms'))
+            && $form_id
+            && !give_is_setting_enabled(give_get_meta($form_id, 'senangpay_customize_senangpay_donations', true, 'global'), array('enabled', 'global'))
+        ) {
+            unset($gateway_list['senangpay']);
+        }
+        return $gateway_list;
+    }
 
-        // Don't let this plugin activate
-        deactivate_plugins(plugin_basename(__FILE__));
+    private function create_payment($purchase_data)
+    {
 
-        if (isset($_GET['activate'])) {
-          unset($_GET['activate']);
+        $form_id = intval($purchase_data['post_data']['give-form-id']);
+        $price_id = isset($purchase_data['post_data']['give-price-id']) ? $purchase_data['post_data']['give-price-id'] : '';
+
+        // Collect payment data.
+        $insert_payment_data = array(
+            'price' => $purchase_data['price'],
+            'give_form_title' => $purchase_data['post_data']['give-form-title'],
+            'give_form_id' => $form_id,
+            'give_price_id' => $price_id,
+            'date' => $purchase_data['date'],
+            'user_email' => $purchase_data['user_email'],
+            'purchase_key' => $purchase_data['purchase_key'],
+            'currency' => give_get_currency($form_id, $purchase_data),
+            'user_info' => $purchase_data['user_info'],
+            'status' => 'pending',
+            'gateway' => 'senangpay',
+        );
+
+        /**
+         * Filter the payment params.
+         *
+         * @since 3.0.2
+         *
+         * @param array $insert_payment_data
+         */
+        $insert_payment_data = apply_filters('give_create_payment', $insert_payment_data);
+
+        // Record the pending payment.
+        return give_insert_payment($insert_payment_data);
+    }
+
+    private function get_senangpay($purchase_data)
+    {
+
+        $form_id = intval($purchase_data['post_data']['give-form-id']);
+
+        $custom_donation = give_get_meta($form_id, 'senangpay_customize_senangpay_donations', true, 'global');
+        $status = give_is_setting_enabled($custom_donation, 'enabled');
+
+        if ($status) {
+            return array(
+                'secret_key' => give_get_meta($form_id, 'senangpay_secret_key', true),
+                'merchant_id' => give_get_meta($form_id, 'senangpay_merchant_id', true),
+                'description' => give_get_meta($form_id, 'senangpay_description', true, true),
+            );
+        }
+        return array(
+            'secret_key' => give_get_option('senangpay_secret_key'),
+            'merchant_id' => give_get_option('senangpay_merchant_id'),
+            'description' => give_get_option('senangpay_description', true),
+        );
+    }
+
+    public static function get_listener_url($payment_id)
+    {
+        // $passphrase = get_option(self::LISTENER_PASSPHRASE, false);
+        // if (!$passphrase) {
+        //     $passphrase = md5(site_url() . $payment_id;
+        //     update_option(self::LISTENER_PASSPHRASE, $passphrase);
+        // }
+
+        // $arg = array(
+        //     'order_id' => $payment_id
+        // );
+        // return add_query_arg($arg, site_url('/'));
+    }
+
+    public function process_payment($purchase_data)
+    {
+        // Validate nonce.
+        give_validate_nonce($purchase_data['gateway_nonce'], 'give-gateway');
+
+        $payment_id = $this->create_payment($purchase_data);
+
+        // Check payment.
+        if (empty($payment_id)) {
+            // Record the error.
+            give_record_gateway_error(__('Payment Error', 'give-senangpay'), sprintf( /* translators: %s: payment data */
+                __('Payment creation failed before sending donor to senangPay. Payment data: %s', 'give-senangpay'), json_encode($purchase_data)), $payment_id);
+            // Problems? Send back.
+            give_send_back_to_checkout();
+        }
+
+        $senangpay_key = $this->get_senangpay($purchase_data);
+
+        $name = $purchase_data['user_info']['first_name'] . ' ' . $purchase_data['user_info']['last_name'];
+
+        $parameter = array(
+            'order_id' => $payment_id,
+            'email' => $purchase_data['user_email'],
+            'name' => empty($name) ? 'Donor Name' : trim($name),
+            'amount' => strval($purchase_data['price']),
+            'detail' => substr(trim($senangpay_key['description']), 0, 120),
+        );
+
+        $parameter = apply_filters('give_senangpay_mandatory_param', $parameter);
+
+        $is_staging = give_is_test_mode();
+        $senangpay = new SenangpayGiveAPI(
+            $senangpay_key['merchant_id'],
+            $senangpay_key['secret_key'],
+            $is_staging,
+            $parameter
+        );
+
+        $payment_url = $senangpay->getPaymentUrl();
+
+        give_update_meta($payment_id, 'senangpay_id', $parameter['order_id']);
+
+        wp_redirect($payment_url);
+        exit;
+    }
+
+    public function give_senangpay_cc_form($form_id)
+    {
+        // ob_start();
+
+        $post_senangpay_customize_option = give_get_meta($form_id, 'senangpay_customize_senangpay_donations', true, 'global');
+
+        // Enable Default fields (billing info)
+        $post_senangpay_cc_fields = give_get_meta($form_id, 'senangpay_collect_billing', true);
+        $global_senangpay_cc_fields = give_get_option('senangpay_collect_billing');
+
+        // Output Address fields if global option is on and user hasn't elected to customize this form's offline donation options
+        if (
+            (give_is_setting_enabled($post_senangpay_customize_option, 'global') && give_is_setting_enabled($global_senangpay_cc_fields))
+            || (give_is_setting_enabled($post_senangpay_customize_option, 'enabled') && give_is_setting_enabled($post_senangpay_cc_fields))
+        ) {
+            give_default_cc_address_fields($form_id);
+            return true;
         }
 
         return false;
-      }
-
-      // Check min Give version.
-      if (defined('GIVE_SENANGPAY_MIN_GIVE_VER') && version_compare(GIVE_VERSION, GIVE_SENANGPAY_MIN_GIVE_VER, '<')) {
-
-        $this->add_admin_notice('prompt_give_version_update', 'error', sprintf(__('<strong>Activation Error:</strong> You must have the <a href="%s" target="_blank">Give</a> core version %s+ for the Give senangPay add-on to activate.', 'give-senangpay'), 'https://givewp.com', GIVE_SENANGPAY_MIN_GIVE_VER));
-
-        // Don't let this plugin activate.
-        deactivate_plugins(plugin_basename(__FILE__));
-
-        if (isset($_GET['activate'])) {
-          unset($_GET['activate']);
-        }
-
-        return false;
-      }
+        // echo ob_get_clean();
     }
 
-    /**
-     * Environment warnings.
-     *
-     * Checks the environment for compatibility problems.
-     * Returns a string with the first incompatibility found or false if the environment has no problems.
-     *
-     * @param bool $during_activation
-     *
-     * @return bool|mixed|string
-     */
-    public static function get_environment_warning($during_activation = false) {
+    private function publish_payment($payment_id, $data)
+    {
+        if ('publish' !== get_post_status($payment_id)) {
+            give_update_payment_status($payment_id, 'publish');
+            if ($data['type'] === 'redirect') {
+                give_insert_payment_note($payment_id, "Payment ID: {$data['id']}.");
+            } else {
+                give_insert_payment_note($payment_id, "Payment ID: {$data['id']}. URL: {$data['url']}");
+            }
+        }
+    }
 
-      if (version_compare(phpversion(), GIVE_SENANGPAY_MIN_PHP_VER, '<')) {
-        if ($during_activation) {
-          $message = __('The plugin could not be activated. The minimum PHP version required for this plugin is %1$s. You are running %2$s. Please contact your web host to upgrade your server\'s PHP version.', 'give-senangpay');
+    public function return_listener()
+    {
+        if (!isset($_GET[self::QUERY_VAR])) {
+            return;
+        }
+
+        if (!isset($_GET['order_id'])) {
+            status_header(403);
+            exit;
+        }
+
+        $payment_id = preg_replace('/\D/', '', $_GET['order_id']);
+        $form_id = give_get_payment_form_id($payment_id);
+
+        $custom_donation = give_get_meta($form_id, 'senangpay_customize_senangpay_donations', true, 'global');
+        $status = give_is_setting_enabled($custom_donation, 'enabled');
+
+        if ($status) {
+            $secret_key = trim(give_get_meta($form_id, 'senangpay_secret_key', true));
         } else {
-          $message = __('The plugin has been deactivated. The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'give-senangpay');
+            $secret_key = trim(give_get_option('senangpay_secret_key'));
         }
 
-        return sprintf($message, GIVE_SENANGPAY_MIN_PHP_VER, phpversion());
-      }
-
-      if (!function_exists('curl_init')) {
-
-        if ($during_activation) {
-          return __('The plugin could not be activated. cURL is not installed. Please contact your web host to install cURL.', 'give-senangpay');
+        try {
+            $data = SenangpayGiveAPI::getResponse($secret_key);
+        } catch (Exception $e) {
+            status_header(403);
+            exit('Failed Hash Validation');
         }
 
-        return __('The plugin has been deactivated. cURL is not installed. Please contact your web host to install cURL.', 'give-senangpay');
-      }
+        if ($data['order_id'] !== give_get_meta($payment_id, 'senangpay_id', true)) {
+            status_header(404);
+            exit('No senangPay Payment ID found');
+        }
 
-      return false;
+        if ($data['paid'] && give_get_payment_status($payment_id)) {
+            $this->publish_payment($payment_id, $data);
+        }
+
+        if ($data['type'] === 'return') {
+            if ($data['paid']) {
+                $return = add_query_arg(array(
+                    'payment-confirmation' => 'senangpay',
+                    'payment-id' => $payment_id,
+                ), get_permalink(give_get_option('success_page')));
+            } else {
+                $return = give_get_failed_transaction_uri('?payment-id=' . $payment_id);
+            }
+
+            wp_redirect($return);
+        } else {
+            echo 'OK';
+        }
+        exit;
     }
 
-    public function add_admin_notice($slug, $class, $message)
+    public function give_senangpay_success_page_content($content)
     {
-        $this->notices[$slug] = array(
-            'class' => $class,
-            'message' => $message,
-        );
-    }
-
-    /**
-     * Display admin notices.
-     */
-    public function admin_notices()
-    {
-        $allowed_tags = array(
-            'a' => array(
-                'href' => array(),
-                'title' => array(),
-                'class' => array(),
-                'id' => array()
-            ),
-            'br' => array(),
-            'em' => array(),
-            'span' => array(
-                'class' => array(),
-            ),
-            'strong' => array(),
-        );
-        foreach ((array) $this->notices as $notice_key => $notice) {
-            echo "<div class='" . esc_attr($notice['class']) . "'><p>";
-            echo wp_kses($notice['message'], $allowed_tags);
-            echo '</p></div>';
+        if ( ! isset( $_GET['payment-id'] ) && ! give_get_purchase_session() ) {
+          return $content;
         }
+
+        $payment_id = isset( $_GET['payment-id'] ) ? absint( $_GET['payment-id'] ) : false;
+
+        if ( ! $payment_id ) {
+            $session    = give_get_purchase_session();
+            $payment_id = give_get_donation_id_by_key( $session['purchase_key'] );
+        }
+
+        $payment = get_post( $payment_id );
+        if ( $payment && 'pending' === $payment->post_status ) {
+
+            // Payment is still pending so show processing indicator to fix the race condition.
+            ob_start();
+
+            give_get_template_part( 'payment', 'processing' );
+
+            $content = ob_get_clean();
+
+        }
+
+        return $content;
     }
-
-    /**
-     * Give Senangpay Includes.
-     */
-    private function includes() {
-
-      // Checks if Give is installed.
-      if (!class_exists('Give')) {
-        return false;
-      }
-
-      if (is_admin()) {
-        include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/admin/give-senangpay-activation.php';
-        include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/admin/give-senangpay-settings.php';
-        include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/admin/give-senangpay-settings-metabox.php';
-      }
-
-      include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/Senangpay_API.php';
-      include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/Senangpay_WPConnect.php';
-      include GIVE_SENANGPAY_PLUGIN_DIR . '/includes/give-senangpay-gateway.php';
-    }
-
-    /**
-     * Register the Senangpay.
-     *
-     * @access      public
-     * @since       1.0
-     *
-     * @param $gateways array
-     *
-     * @return array
-     */
-    public function register_gateway($gateways) {
-
-      // Format: ID => Name
-      $label = array(
-        'admin_label'    => __('Senangpay', 'give-senangpay'),
-        'checkout_label' => __('Senangpay', 'give-senangpay'),
-      );
-
-      $gateways['senangpay'] = apply_filters('give_senangpay_label', $label);
-
-      return $gateways;
-    }
-  }
-
-  $GLOBALS['give_senangpay'] = Give_Senangpay::get_instance();
-  register_activation_hook(__FILE__, array('Give_Senangpay', 'activation_check'));
-
-endif; // End if class_exists check.
+}
+Give_Senangpay_Gateway::get_instance();
