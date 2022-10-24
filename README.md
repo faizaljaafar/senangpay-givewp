@@ -31,5 +31,3 @@ Accept GiveWP donation by using this plugin.
 2. Choose **SHA256** for the **Hash Type Preference**
 3. Fill in the **Return URL** with [your-website]/?senangpay_givewp_return=yes, ex: https://yourdonationsite/?senangpay_givewp_return=yes
 4. Fill in the **Callback URL** with [your-website]/?senangpay_givewp_return=yes, ex: https://yourdonationsite/?senangpay_givewp_return=yes
-
-* Please make sure you have enabled X Signature Key properly on your [Billplz Account Settings](https://www.billplz.com/enterprise/setting)
