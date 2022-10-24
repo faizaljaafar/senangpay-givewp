@@ -1,6 +1,6 @@
-# Billplz for GiveWP
+# senangPay for GiveWP
 
-Accept payment using Billplz by using this plugin.
+Accept GiveWP donation by using this plugin.
 
 ## Requirements
 
@@ -9,23 +9,25 @@ Accept payment using Billplz by using this plugin.
 
 ## Installation
 
-* Download here: [**Plugin Files**](https://codeload.github.com/Billplz/Billplz-for-GiveWP/zip/master)
+* Download here: [**Plugin Files**](https://download.url)
 * Login to **WordPress Dashboard**
 * Navigate to **Plugins >> Add New >> Upload**
 * Upload the files >> **Activate**
 
-## Configuration
+## GiveWP Configuration
 
 1. Login to **WordPress Dashboard**
 2. Navigate to **Donations >> Settings >> Payment Gateways**
-3. Enable **Billplz - FPX**
-4. Navigate to **Billplz Settings**
-5. Set **API Secret Key** and **X Signature Key**
+3. Enable **senangPay**
+4. Navigate to **senangPay Settings**
+5. Set **Secret Key**, **Merchant ID** and **Billing Description**
 
-## Troubleshooting
+## senangPay Configuration
+
+1. Login to **senangPay Dashboard**
+2. Navigate to **Settings >> Profile >> Shopping Cart Integration Link**
+2. Choose **SHA256** for the **Hash Type Preference**
+3. Fill in the **Return URL** with [your-website]/?senangpay_givewp_return=yes, ex: https://yourdonationsite/?senangpay_givewp_return=yes
+4. Fill in the **Callback URL** with [your-website]/?senangpay_givewp_return=yes, ex: https://yourdonationsite/?senangpay_givewp_return=yes
 
 * Please make sure you have enabled X Signature Key properly on your [Billplz Account Settings](https://www.billplz.com/enterprise/setting)
-
-## Other
-
-Facebook: [Billplz Dev Jam](https://www.facebook.com/groups/billplzdevjam/)
