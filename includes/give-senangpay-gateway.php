@@ -173,6 +173,14 @@ class Give_Senangpay_Gateway
         }
     }
 
+    private function failed_payment($payment_id, $data)
+    {
+        if ('publish' !== get_post_status($payment_id)) {
+            give_update_payment_status($payment_id, 'failed');
+            give_insert_payment_note($payment_id, "senangPay Transaction ID: {$data['transaction_id']}.");
+        }
+    }
+
     public function return_listener()
     {
         if (!isset($_GET[self::QUERY_VAR])) {
@@ -210,6 +218,8 @@ class Give_Senangpay_Gateway
 
         if ($data['paid'] && give_get_payment_status($payment_id)) {
             $this->publish_payment($payment_id, $data);
+        } else if (!$data['paid'] && give_get_payment_status($payment_id)) {
+            $this->failed_payment($payment_id, $data);
         }
 
         if ($data['type'] === 'return') {
