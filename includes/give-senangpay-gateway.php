@@ -179,13 +179,13 @@ class Give_Senangpay_Gateway
             return;
         }
 
-        if (!isset($_GET['order_id'])) {
-            status_header(403);
-            exit;
+        if (isset($_GET['order_id'])) {
+            $payment_id = preg_replace('/\D/', '', $_GET['order_id']);
+            $form_id = give_get_payment_form_id($payment_id);
+        } else {
+            $payment_id = preg_replace('/\D/', '', $_POST['order_id']);
+            $form_id = give_get_payment_form_id($payment_id);
         }
-
-        $payment_id = preg_replace('/\D/', '', $_GET['order_id']);
-        $form_id = give_get_payment_form_id($payment_id);
 
         $custom_donation = give_get_meta($form_id, 'senangpay_customize_senangpay_donations', true, 'global');
         $status = give_is_setting_enabled($custom_donation, 'enabled');
