@@ -21,6 +21,8 @@ Accept GiveWP donation by using this plugin.
 3. Enable **senangPay**
 4. Navigate to **senangPay Settings**
 5. Set **Secret Key**, **Merchant ID** and **Billing Description**
+6. Extra: To use senangPay sandbox account, enable GiveWP's payment gateway test mode
+7. Extra: You can override senangPay's details in GiveWP's form, at senangPay's section
 
 ## senangPay Configuration
 
